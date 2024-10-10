@@ -30,6 +30,9 @@ R S S B O T
     rssbot in your channel.
 
 
+    *note* if reinstall fails, try pip uninstall to start pristine.
+
+
 **INSTALL**
 
 ::

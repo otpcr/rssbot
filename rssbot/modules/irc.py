@@ -2,7 +2,7 @@
 # pylint: disable=R,C0103,W0105,W0201,W0613,w0622,W0718,E1102
 
 
-"internet relay chat"
+"24/7 Channel Daemon"
 
 
 import base64
@@ -196,7 +196,6 @@ class IRC(Reactor, Output):
         self.register('ERROR', cb_error)
         self.register('LOG', cb_log)
         self.register('NOTICE', cb_notice)
-        self.register('PRIVMSG', cb_privmsg)
         self.register('QUIT', cb_quit)
         self.register("366", cb_ready)
         Broker.add(self)
@@ -593,23 +592,6 @@ def cb_notice(bot, evt):
     if evt.txt.startswith('VERSION'):
         txt = f'\001VERSION {NAME.upper()} 140 - {bot.cfg.username}\001'
         bot.docommand('NOTICE', evt.channel, txt)
-
-
-def cb_privmsg(bot, evt):
-    "privmsg callback."
-    if not bot.cfg.commands:
-        return
-    if evt.txt:
-        if evt.txt[0] in ['!',]:
-            evt.txt = evt.txt[1:]
-        elif evt.txt.startswith(f'{bot.cfg.nick}:'):
-            evt.txt = evt.txt[len(bot.cfg.nick)+1:]
-        else:
-            return
-        if evt.txt:
-            evt.txt = evt.txt[0].lower() + evt.txt[1:]
-        if evt.txt:
-            command(bot, evt)
 
 
 def cb_quit(bot, evt):
