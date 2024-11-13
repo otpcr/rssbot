@@ -1,30 +1,57 @@
 # This file is placed in the Public Domain.
-# pylint: disable=C0413,W0105,W0611
+# pylint: disable=C
 
 
-"cli"
+"console"
 
 
-import getpass
-import os
 import sys
 
 
-sys.path.insert(0, os.getcwd())
-
-
-from .command import NAME, CLI, Commands, command
+from .command import NAME, Commands, Config
+from .command import command, parse, scanner, wrap
 from .modules import face
-from .runtime import Event
+from .runtime import Client, Event, errors
 
 
-class CLIS(CLI):
+cfg  = Config()
 
-    "CLI"
+
+class CLI(Client):
+
+    def __init__(self):
+        Client.__init__(self)
+        self.register("command", command)
 
     def raw(self, txt):
-        "print text."
         print(txt)
+
+
+def srv(event):
+    import getpass
+    name  = getpass.getuser()
+    event.reply(TXT % (NAME.upper(), name, name, name, NAME))
+    
+
+def wrapped():
+    wrap(main)
+    for line in errors():
+        print(line)
+
+
+scan = scanner
+
+
+def main():
+    Commands.add(srv)
+    parse(cfg, " ".join(sys.argv[1:]))
+    scan(face)
+    evt = Event()
+    evt.type = "command"
+    evt.txt = cfg.txt
+    csl = CLI()
+    command(csl, evt)
+    evt.wait()
 
 
 TXT = """[Unit]
@@ -41,23 +68,5 @@ ExecStart=/home/%s/.local/bin/%ss
 WantedBy=multi-user.target"""
 
 
-def srv(event):
-    "create service file (pipx)."
-    name  = getpass.getuser()
-    event.reply(TXT % (NAME.upper(), name, name, name, NAME))
-
-
-Commands.add(srv)
-
-
-def main():
-    "main"
-    cli = CLIS()
-    evt = Event()
-    evt.txt = " ".join(sys.argv[1:])
-    command(cli, evt)
-    evt.wait()
-
-
 if __name__ == "__main__":
-    main()
+    wrapped()

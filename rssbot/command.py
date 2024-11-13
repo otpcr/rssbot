@@ -1,90 +1,47 @@
-#!/usr/bin/env python3
 # This file is placed in the Public Domain.
-# pylint: disable=R,W0105,C0413,W0223,W0611,W0718
+# pylint: disable=C,R,W0105,W0718
 
 
 "command"
 
 
+import inspect
+import os
 import time
 import _thread
 
 
 from .object  import Obj
-from .runtime import Client, later, launch
+from .persist import Workdir
+from .runtime import later, launch
 
 
-NAME = __file__.rsplit("/", maxsplit=2)[-2]
-STARTTIME = time.time()
-
-
-class Config(Obj):
-
-    "Config"
-
-
-class Broker:
-
-    "Broker"
-
-    objs = {}
-
-    @staticmethod
-    def add(obj):
-        "add object."
-        Broker.objs[repr(obj)] = obj
-
-    @staticmethod
-    def announce(txt, kind=None):
-        "announce text on brokered objects."
-        for obj in Broker.all(kind):
-            if "announce" in dir(obj):
-                obj.announce(txt)
-
-    @staticmethod
-    def all(kind=None):
-        "return all objects."
-        result = []
-        if kind is not None:
-            for key in [x for x in Broker.objs if kind in x]:
-                result.append(Broker.get(key))
-        else:
-            result.extend(list(Broker.objs.values()))
-        return result
-
-    @staticmethod
-    def get(orig):
-        "return object by matching repr."
-        return Broker.objs.get(orig)
-
-
-
-class CLI(Client):
-
-    "CLI"
-
-    def __init__(self):
-        Client.__init__(self)
-        Broker.add(self)
-        self.register("event", command)
+NAME        = __file__.rsplit(os.sep, maxsplit=2)[-2]
+STARTTIME   = time.time()
+Workdir.wdr = os.path.expanduser(f"~/.{NAME}")
 
 
 class Commands:
-
-    "Commands"
 
     cmds = {}
 
     @staticmethod
     def add(func):
-        "add command."
         Commands.cmds[func.__name__] = func
+
+    @staticmethod
+    def scan(mod):
+        for key, cmdz in inspect.getmembers(mod, inspect.isfunction):
+            if key.startswith("cb"):
+                continue
+            if 'event' in cmdz.__code__.co_varnames:
+                Commands.add(cmdz)
 
 
 def command(bot, evt):
-    "check for and run a command."
     parse(evt, evt.txt)
-    evt.orig = repr(bot)
+    if "ident" in dir(bot):
+        evt.orig = bot.ident
     func = Commands.cmds.get(evt.cmd, None)
     if func:
         try:
@@ -95,8 +52,69 @@ def command(bot, evt):
     evt.ready()
 
 
+class Config(Obj):
+
+    pass
+
+
+def forever():
+    while True:
+        try:
+            time.sleep(0.1)
+        except (KeyboardInterrupt, EOFError):
+            _thread.interrupt_main()
+
+
+def laps(seconds, short=True) -> str:
+    txt = ""
+    nsec = float(seconds)
+    if nsec < 1:
+        return f"{nsec:.2f}s"
+    yea = 365*24*60*60
+    week = 7*24*60*60
+    nday = 24*60*60
+    hour = 60*60
+    minute = 60
+    yeas = int(nsec/yea)
+    nsec -= yeas*yea
+    weeks = int(nsec/week)
+    nsec -= weeks*week
+    nrdays = int(nsec/nday)
+    nsec -= nrdays*nday
+    hours = int(nsec/hour)
+    nsec -= hours*hour
+    minutes = int(nsec/minute)
+    nsec -= int(minute*minutes)
+    sec = int(nsec)
+    if yeas:
+        txt += f"{yeas}y"
+    if weeks:
+        nrdays += weeks * 7
+    if nrdays:
+        txt += f"{nrdays}d"
+    if short and txt:
+        return txt.strip()
+    if hours:
+        txt += f"{hours}h"
+    if minutes:
+        txt += f"{minutes}m"
+    if sec:
+        txt += f"{sec}s"
+    txt = txt.strip()
+    return txt
+
+
+def modloop(*pkgs, disable=""):
+    for pkg in pkgs:
+        for modname in dir(pkg):
+            if modname in spl(disable):
+                continue
+            if modname.startswith("__"):
+                continue
+            yield getattr(pkg, modname)
+
+
 def parse(obj, txt=None):
-    "parse a string for a command."
     if txt is None:
         txt = ""
     args = []
@@ -152,33 +170,34 @@ def parse(obj, txt=None):
     return obj
 
 
-
-def forever():
-    "it doesn't stop, until ctrl-c"
-    while True:
-        try:
-            time.sleep(1.0)
-        except (KeyboardInterrupt, EOFError):
-            _thread.interrupt_main()
+def privileges():
+    import getpass
+    import pwd
+    pwnam2 = pwd.getpwnam(getpass.getuser())
+    os.setgid(pwnam2.pw_gid)
+    os.setuid(pwnam2.pw_uid)
 
 
-def init(*pkgs):
-    "run the init function in modules."
-    mods = []
-    for pkg in pkgs:
-        for modname in dir(pkg):
-            if modname.startswith("__"):
-                continue
-            modi = getattr(pkg, modname)
-            if "init" not in dir(modi):
-                continue
-            thr = launch(modi.init)
-            mods.append((modi, thr))
-    return mods
+def scanner(*pkgs, init=False, disable=""):
+    result = []
+    for mod in modloop(*pkgs, disable=disable):
+        Commands.scan(mod)
+        thr = None
+        if init and "init" in dir(mod):
+            thr = launch(mod.init)
+        result.append((mod, thr))
+    return result
+
+
+def spl(txt):
+    try:
+        result = txt.split(',')
+    except (TypeError, ValueError):
+        result = txt
+    return [x for x in result if x]
 
 
 def wrap(func):
-    "reset console."
     try:
         func()
     except (KeyboardInterrupt, EOFError):
@@ -189,13 +208,14 @@ def wrap(func):
 
 def __dir__():
     return (
-        'CLI',
-        'Broker',
         'Commands',
         'Config',
         'command',
         'forever',
-        'init',
+        'laps',
         'parse',
+        'privileges',
+        'scanner',
+        'spl',
         'wrap'
     )

@@ -1,69 +1,57 @@
-#!/usr/bin/env python3
 # This file is placed in the Public Domain.
-# pylint: disable=C0413,W0105,W0718
+# pylint: disable=C,W0611,W0718
 
 
 "console"
 
 
-import os
 import readline
 import sys
 import termios
 import time
 
 
-sys.path.insert(0, os.getcwd())
-
-
-from .command import NAME, CLI, Config, forever, later, init, parse
+from .command import NAME, Config, command, forever, parse, scanner
 from .modules import face
-from .runtime import Errors, Event, later
+from .runtime import Client, Event, errors, later
 
 
 cfg = Config()
 
 
+class CLI(Client):
+
+    def __init__(self):
+        Client.__init__(self)
+        self.register("command", command)
+
+    def raw(self, txt):
+        print(txt)
+
+
 class Console(CLI):
 
-    "Console"
-
     def callback(self, evt):
-        "wait for result."
         CLI.callback(self, evt)
         evt.wait()
 
     def poll(self):
-        "poll console and create event."
         evt = Event()
         evt.txt = input("> ")
+        evt.type = "command"
         return evt
-
-    def raw(self, txt):
-        "print text."
-        print(txt)
 
 
 def banner():
-    "show banner."
     tme = time.ctime(time.time()).replace("  ", " ")
     print(f"{NAME.upper()} since {tme}")
-
-
-def errors():
-    "print errors."
-    for error in Errors.errors:
-        for line in error:
-            print(line)
-    if not Errors.errors and "v" in cfg.opts:
-        print("no errors")
+    sys.stdout.flush()
 
 
 def wrap(func):
-    "reset console."
-    old2 = None
+    old = None
     try:
-        old2 = termios.tcgetattr(sys.stdin.fileno())
+        old = termios.tcgetattr(sys.stdin.fileno())
     except termios.error:
         pass
     try:
@@ -73,31 +61,38 @@ def wrap(func):
     except Exception as ex:
         later(ex)
     finally:
-        if old2:
-            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, old2)
+        if old:
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, old)
+    for txt in errors():
+        print(txt)
 
 
-"main"
-
-
-
+def wrapped():
+    wrap(main)
+    
 
 def main():
-    "main"
-    readline.redisplay()
     parse(cfg, " ".join(sys.argv[1:]))
     if "v" in cfg.opts:
         banner()
-        face.irc.output = print
-    if "i" in cfg.opts:
-        for _mod, thr in init(face):
-            if "w" in cfg.opts:
+    if "c" in cfg.opts:
+        for mod, thr in scanner(face, init="i" in cfg.opts, disable=cfg.sets.dis):
+            if "v" in cfg.opts and "output" in dir(mod):
+                mod.output = print
+            if thr and "w" in cfg.opts:
                 thr.join()
-    csl = Console()
-    csl.start()
-    forever()
+        csl = Console()
+        csl.start()
+        forever()
+    else:
+        scanner(face)
+        evt = Event()
+        evt.txt = cfg.txt
+        evt.type = "command"
+        csl = CLI()
+        command(csl, evt)
+        evt.wait()
 
 
 if __name__ == "__main__":
-    wrap(main)
-    errors()
+    wrapped()

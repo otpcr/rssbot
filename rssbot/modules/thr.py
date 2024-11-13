@@ -1,4 +1,5 @@
 # This file is placed in the Public Domain.
+# pylint: disable=C,W0105
 
 
 "running threads."
@@ -8,13 +9,20 @@ import threading
 import time
 
 
-from ..command  import STARTTIME, Commands
+from ..command import laps
 from ..object  import Object, update
-from ..persist import laps
+
+
+"defines"
+
+
+STARTTIME = time.time()
+
+
+"commands"
 
 
 def thr(event):
-    "list threads."
     result = []
     for thread in sorted(threading.enumerate(), key=lambda x: x.name):
         if str(thread).startswith('<_'):
@@ -31,13 +39,10 @@ def thr(event):
             uptime = int(time.time() - STARTTIME)
         result.append((uptime, thread.name))
     res = []
-    for uptime, txt in sorted(result, key=lambda x: x[1]):
+    for uptime, txt in sorted(result, key=lambda x: x[0]):
         lap = laps(uptime)
         res.append(f'{txt}/{lap}')
     if res:
         event.reply(' '.join(res))
     else:
         event.reply('no threads')
-
-
-Commands.add(thr)

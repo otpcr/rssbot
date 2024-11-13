@@ -1,27 +1,23 @@
 # This file is placed in the Public Domain.
-# pylint: disable=C0413,W0105,W0212,W0718
+# pylint: disable=C,W0212
 
 
 "daemon"
 
 
-import getpass
 import os
-import pwd
 import sys
 
 
-sys.path.insert(0, os.getcwd())
-
-
-from .command import forever, init, wrap
+from .command import NAME, forever, privileges, scanner, wrap
 from .modules import face
 from .persist import pidfile, pidname
-from .runtime import Errors
+
+
+scan = scanner
 
 
 def daemon(verbose=False):
-    "switch to background."
     pid = os.fork()
     if pid != 0:
         os._exit(0)
@@ -41,29 +37,13 @@ def daemon(verbose=False):
     os.nice(10)
 
 
-def errors():
-    "print errors."
-    for error in Errors.errors:
-        for line in error:
-            print(line)
-
-
-def privileges(username):
-    "privileges."
-    pwnam = pwd.getpwnam(username)
-    os.setgid(pwnam.pw_gid)
-    os.setuid(pwnam.pw_uid)
-
-
 def main():
-    "main"
     daemon()
-    privileges(getpass.getuser())
-    pidfile(pidname())
-    init(face)
+    privileges()
+    pidfile(pidname(NAME))
+    scan(face, init=True)
     forever()
 
 
 if __name__ == "__main__":
     wrap(main)
-    errors()

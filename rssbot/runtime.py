@@ -1,49 +1,190 @@
 # This file is placed in the Public Domain.
-# pylint: disable=R,W0105,W0212,W0622,W0718,E1102
+# pylint: disable=C,R,W0105,W0212,W0718
 
 
-"runtime"
+"errors,reactor,threads,timers"
 
 
 import queue
 import threading
 import time
 import traceback
-import types
 import _thread
+
+
+"errors"
 
 
 class Errors:
 
-    "Errors"
-
     errors = []
 
+    @staticmethod
+    def format(exc):
+        return traceback.format_exception(
+                                   type(exc),
+                                   exc,
+                                   exc.__traceback__
+                                  )
 
-def format(exc):
-    "format an exception"
-    return traceback.format_exception(
-                               type(exc),
-                               exc,
-                               exc.__traceback__
-                              )
+def errors():
+    for err in Errors.errors:
+        for line in err:
+            yield line
 
 
 def later(exc):
-    "add an exception"
     excp = exc.with_traceback(exc.__traceback__)
-    fmt = format(excp)
+    fmt = Errors.format(excp)
     if fmt not in Errors.errors:
         Errors.errors.append(fmt)
 
 
-class Thread(threading.Thread):
+"output"
 
-    "Thread"
+
+class Output:
+
+    cache = {}
+
+    def __init__(self):
+        self.oqueue = queue.Queue()
+
+    def dosay(self, channel, txt):
+        raise NotImplementedError
+
+    def oput(self, channel, txt):
+        self.oqueue.put_nowait((channel, txt))
+
+    def output(self):
+        while True:
+            (channel, txt) = self.oqueue.get()
+            if channel is None and txt is None:
+                break
+            self.dosay(channel, txt)
+            self.oqueue.task_done()
+
+    def start(self):
+        launch(self.output)
+
+    def wait(self):
+        self.oqueue.join()
+ 
+
+"reactor"
+
+
+class Reactor:
+
+    def __init__(self):
+        self.cbs      = {}
+        self.queue    = queue.Queue()
+        self.stopped  = threading.Event()
+
+    def callback(self, evt):
+        func = self.cbs.get(evt.type, None)
+        if func:
+            evt._thr = launch(func, self, evt)
+        elif "ready" in dir(evt):
+            evt.ready()
+
+    def loop(self):
+        while not self.stopped.is_set():
+            try:
+                evt = self.poll()
+                self.callback(evt)
+            except (KeyboardInterrupt, EOFError):
+                _thread.interrupt_main()
+
+    def poll(self):
+        return self.queue.get()
+
+    def put(self, evt):
+        self.queue.put_nowait(evt)
+
+    def register(self, typ, cbs):
+        self.cbs[typ] = cbs
+
+    def start(self):
+        launch(self.loop)
+
+    def stop(self):
+        self.stopped.set()
+
+
+"client"
+
+
+class Client(Reactor):
+
+
+    def display(self, evt):
+        for txt in evt.result:
+            self.raw(txt)
+
+    def raw(self, txt):
+        raise NotImplementedError
+
+
+class BufferedClient(Client, Output):
+
+    def __init__(self):
+        Client.__init__(self)
+        Output.__init__(self)
+
+    def display(self, evt):
+        for txt in evt.result:
+            self.oput(evt.channel, txt)
+
+    def dosay(self, channel, txt):
+        self.raw(txt)
+
+    def raw(self, txt):
+        raise NotImplementedError
+
+    def start(self):
+        Client.start(self)
+        Output.start(self)
+
+
+"event"
+
+
+class Event:
+
+    def __init__(self):
+        self._ready = threading.Event()
+        self._thr   = None
+        self.result = []
+        self.type   = "event"
+        self.txt    = ""
+
+    def __getattr__(self, key):
+        return self.__dict__.get(key, "")
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def ready(self):
+        self._ready.set()
+
+    def reply(self, txt):
+        self.result.append(txt)
+
+    def wait(self):
+        self._ready.wait()
+        if self._thr:
+            self._thr.join()
+
+
+"threads"
+
+
+class Thread(threading.Thread):
 
     def __init__(self, func, thrname, *args, daemon=True, **kwargs):
         super().__init__(None, self.run, thrname, (), {}, daemon=daemon)
-        self.name      = thrname
+        self.name      = thrname or name(func)
         self.queue     = queue.Queue()
         self.result    = None
         self.starttime = time.time()
@@ -59,16 +200,13 @@ class Thread(threading.Thread):
         yield from dir(self)
 
     def size(self):
-        "return qsize"
         return self.queue.qsize()
 
     def join(self, timeout=None):
-        "join this thread."
         super().join(timeout)
         return self.result
 
     def run(self):
-        "run this thread's payload."
         try:
             func, args = self.queue.get()
             self.result = func(*args)
@@ -79,17 +217,13 @@ class Thread(threading.Thread):
 
 
 def launch(func, *args, **kwargs):
-    "launch a thread."
-    name = kwargs.get("name", named(func))
-    thread = Thread(func, name, *args, **kwargs)
+    nme = kwargs.get("name", name(func))
+    thread = Thread(func, nme, *args, **kwargs)
     thread.start()
     return thread
 
 
-def named(obj):
-    "return a full qualified name of an object/function/module."
-    if isinstance(obj, types.ModuleType):
-        return obj.__name__
+def name(obj):
     typ = type(obj)
     if '__builtins__' in dir(typ):
         return obj.__name__
@@ -104,123 +238,25 @@ def named(obj):
     return None
 
 
-class Reactor:
-
-    "Reactor"
-
-    def __init__(self):
-        self.cbs      = {}
-        self.queue    = queue.Queue()
-        self.stopped  = threading.Event()
-
-    def callback(self, evt):
-        "call callback based on event type."
-        func = self.cbs.get(evt.type, None)
-        if func:
-            evt._thr = launch(func, self, evt)
-
-    def loop(self):
-        "proces events until interrupted."
-        while not self.stopped.is_set():
-            try:
-                evt = self.poll()
-                self.callback(evt)
-            except (KeyboardInterrupt, EOFError):
-                _thread.interrupt_main()
-
-    def poll(self):
-        "function to return event."
-        return self.queue.get()
-
-    def put(self, evt):
-        "put event into the queue."
-        self.queue.put_nowait(evt)
-
-    def register(self, typ, cbs):
-        "register callback for a type."
-        self.cbs[typ] = cbs
-
-    def start(self):
-        "start the event loop."
-        launch(self.loop)
-
-    def stop(self):
-        "stop the event loop."
-        self.stopped.set()
-
-
-class Client(Reactor):
-
-    "Client"
-
-    def display(self, evt):
-        "show results into a channel."
-        for txt in evt.result:
-            self.say(evt.channel, txt)
-
-    def say(self, _channel, txt):
-        "echo on verbose."
-        self.raw(txt)
-
-    def raw(self, txt):
-        "print to screen."
-        raise NotImplementedError
-
-
-class Event:
-
-    "Event"
-
-    def __init__(self):
-        self._ready  = threading.Event()
-        self._thr    = None
-        self.channel = ""
-        self.orig    = ""
-        self.result  = []
-        self.txt     = ""
-        self.type    = "event"
-
-    def __getattr__(self, key):
-        return self.__dict__.get(key, "")
-
-    def __str__(self):
-        return str(self.__dict__)
-
-    def ready(self):
-        "flag event as ready."
-        self._ready.set()
-
-    def reply(self, txt):
-        "add text to the result."
-        self.result.append(txt)
-
-    def wait(self):
-        "wait for results."
-        self._ready.wait()
-        if self._thr:
-            self._thr.join()
+"timers"
 
 
 class Timer:
-
-    "Timer"
 
     def __init__(self, sleep, func, *args, thrname=None, **kwargs):
         self.args  = args
         self.func  = func
         self.kwargs = kwargs
         self.sleep = sleep
-        self.name  = thrname or kwargs.get("name", named(func))
+        self.name  = thrname or kwargs.get("name", name(func))
         self.state = {}
         self.timer = None
 
     def run(self):
-        "run the payload in a thread."
         self.state["latest"] = time.time()
         launch(self.func, *self.args)
 
     def start(self):
-        "start timer."
         timer = threading.Timer(self.sleep, self.run)
         timer.name   = self.name
         timer.sleep  = self.sleep
@@ -232,31 +268,32 @@ class Timer:
         self.timer   = timer
 
     def stop(self):
-        "stop timer."
         if self.timer:
             self.timer.cancel()
 
 
 class Repeater(Timer):
 
-    "Repeater"
-
     def run(self):
         launch(self.start)
         super().run()
 
 
+"interface"
+
+
 def __dir__():
     return (
+        'BufferedClient',
         'Client',
+        'Errors',
         'Event',
         'Reactor',
-        'Errors',
         'Repeater',
         'Thread',
         'Timer',
-        'format',
+        'errors',
         'later',
         'launch',
-        'named'
+        'name'
     )

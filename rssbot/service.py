@@ -1,47 +1,30 @@
 # This file is placed in the Public Domain.
-# pylint: disable=C0413,W0105
+# pylint: disable=C,W0105
 
 
 "service"
 
 
-import getpass
-import os
-import pwd
-import sys
-
-
-sys.path.insert(0, os.getcwd())
-
-
-from .command import forever, init, wrap
-from .modules import face as faced
+from .command import NAME, forever, privileges, scanner, wrap
+from .modules import face
 from .persist import pidfile, pidname
-from .runtime import Errors
+from .runtime import errors
 
 
-def errors():
-    "print errors."
-    for err in Errors.errors:
-        for line in err:
-            print(line)
-
-
-def privileges(username):
-    "privileges."
-    pwnam2 = pwd.getpwnam(username)
-    os.setgid(pwnam2.pw_gid)
-    os.setuid(pwnam2.pw_uid)
+def wrapped():
+    wrap(main)
+    for text in errors():
+        print(text)
 
 
 def main():
-    "main"
-    privileges(getpass.getuser())
-    pidfile(pidname())
-    init(faced)
+    privileges()
+    pidfile(pidname(NAME))
+    scanner(face, init=True)
     forever()
 
 
 if __name__ == "__main__":
     wrap(main)
-    errors()
+    for txt in errors():
+        print(txt)

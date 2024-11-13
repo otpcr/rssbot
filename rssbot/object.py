@@ -1,5 +1,5 @@
 # This file is placed in the Public Domain.
-# pylint: disable=R,W0105,W0621,W0622
+# pylint: disable=C,R,W0105,W0622
 
 
 "a clean namespace"
@@ -10,35 +10,30 @@ import json
 
 class Object:
 
-    "Object"
-
     def __contains__(self, key):
-        "verify containment."
         return key in dir(self)
 
+    def __getstate__(self):
+        pass
+
     def __iter__(self):
-        "iterate over the object."
         return iter(self.__dict__)
 
     def __len__(self):
-        "determine length of the object."
         return len(self.__dict__)
 
     def __str__(self):
-        "return printable string."
         return str(self.__dict__)
 
 
 class Obj(Object):
 
-    "default values"
-
     def __getattr__(self, key):
         return self.__dict__.get(key, "")
 
 
+
 def construct(obj, *args, **kwargs):
-    "construct an object from provided arguments."
     if args:
         val = args[0]
         if isinstance(val, zip):
@@ -51,134 +46,7 @@ def construct(obj, *args, **kwargs):
         update(obj, kwargs)
 
 
-"methods"
-
-
-def items(obj):
-    "return the items of an object."
-    if isinstance(obj,type({})):
-        return obj.items()
-    else:
-        return obj.__dict__.items()
-
-
-def keys(obj):
-    "return keys of an object."
-    if isinstance(obj, type({})):
-        return obj.keys()
-    return list(obj.__dict__.keys())
-
-
-def update(obj, data):
-    "update an object."
-    if isinstance(data, type({})):
-        obj.__dict__.update(data)
-    else:
-        obj.__dict__.update(vars(data))
-
-
-def values(obj):
-    "return values of an object."
-    return obj.__dict__.values()
-
-
-"decoder"
-
-
-class ObjectDecoder(json.JSONDecoder):
-
-    "ObjectDecoder"
-
-    def __init__(self, *args, **kwargs):
-        json.JSONDecoder.__init__(self, *args, **kwargs)
-
-    def decode(self, s, _w=None):
-        "decoding string to object."
-        val = json.JSONDecoder.decode(self, s)
-        if not val:
-            val = {}
-        return hook(val)
-
-    def raw_decode(self, s, idx=0):
-        "decode partial string to object."
-        return json.JSONDecoder.raw_decode(self, s, idx)
-
-
-def hook(objdict):
-    "construct object from dict."
-    obj = Object()
-    construct(obj, objdict)
-    return obj
-
-
-def load(fpt, *args, **kw):
-    "load object from file."
-    kw["cls"] = ObjectDecoder
-    kw["object_hook"] = hook
-    return json.load(fpt, *args, **kw)
-
-
-def loads(string, *args, **kw):
-    "load object from string."
-    kw["cls"] = ObjectDecoder
-    kw["object_hook"] = hook
-    return json.loads(string, *args, **kw)
-
-
-"encoder"
-
-
-class ObjectEncoder(json.JSONEncoder):
-
-    "ObjectEncoder"
-
-    def __init__(self, *args, **kwargs):
-        json.JSONEncoder.__init__(self, *args, **kwargs)
-
-    def default(self, o):
-        "return stringable value."
-        if isinstance(o, dict):
-            return o.items()
-        if isinstance(o, Object):
-            return vars(o)
-        if isinstance(o, list):
-            return iter(o)
-        if isinstance(o, (type(str), type(True), type(False), type(int), type(float))):
-            return o
-        try:
-            return json.JSONEncoder.default(self, o)
-        except TypeError:
-            try:
-                return o.__dict__
-            except AttributeError:
-                return repr(o)
-
-    def encode(self, o) -> str:
-        "encode object to string."
-        return json.JSONEncoder.encode(self, o)
-
-    def iterencode(self, o, _one_shot=False):
-        "loop over object to encode to string."
-        return json.JSONEncoder.iterencode(self, o, _one_shot)
-
-
-def dump(*args, **kw):
-    "dump object to file."
-    kw["cls"] = ObjectEncoder
-    return json.dump(*args, **kw)
-
-
-def dumps(*args, **kw):
-    "dump object to string."
-    kw["cls"] = ObjectEncoder
-    return json.dumps(*args, **kw)
-
-
-"methods"
-
-
 def edit(obj, setter, skip=False):
-    "edit an object from provided dict/dict-like."
     for key, val in items(setter):
         if skip and val == "":
             continue
@@ -201,7 +69,6 @@ def edit(obj, setter, skip=False):
 
 
 def format(obj, args=None, skip=None, plain=False):
-    "format an object to a printable string."
     if args is None:
         args = keys(obj)
     if skip is None:
@@ -224,23 +91,27 @@ def format(obj, args=None, skip=None, plain=False):
     return txt.strip()
 
 
-def fqn(obj):
-    "return full qualified name of an object."
-    kin = str(type(obj)).split()[-1][1:-2]
-    if kin == "type":
-        kin = f"{obj.__module__}.{obj.__name__}"
-    return kin
+
+def items(obj):
+    if isinstance(obj,type({})):
+        return obj.items()
+    else:
+        return obj.__dict__.items()
+
+
+def keys(obj):
+    if isinstance(obj, type({})):
+        return obj.keys()
+    return list(obj.__dict__.keys())
 
 
 def match(obj, txt):
-    "check if object has matching keys."
     for key in keys(obj):
         if txt in key:
             yield key
 
 
 def search(obj, selector, matching=None):
-    "check if object matches provided values."
     res = False
     if not selector:
         return res
@@ -258,7 +129,87 @@ def search(obj, selector, matching=None):
     return res
 
 
-"interface"
+def update(obj, data):
+    if isinstance(data, type({})):
+        obj.__dict__.update(data)
+    else:
+        obj.__dict__.update(vars(data))
+
+
+def values(obj):
+    return obj.__dict__.values()
+
+
+class ObjectDecoder(json.JSONDecoder):
+
+    def __init__(self, *args, **kwargs):
+        json.JSONDecoder.__init__(self, *args, **kwargs)
+
+    def decode(self, s, _w=None):
+        val = json.JSONDecoder.decode(self, s)
+        if not val:
+            val = {}
+        return hook(val)
+
+    def raw_decode(self, s, idx=0):
+        return json.JSONDecoder.raw_decode(self, s, idx)
+
+
+def hook(objdict):
+    obj = Object()
+    construct(obj, objdict)
+    return obj
+
+
+def load(fpt, *args, **kw):
+    kw["cls"] = ObjectDecoder
+    kw["object_hook"] = hook
+    return json.load(fpt, *args, **kw)
+
+
+def loads(string, *args, **kw):
+    kw["cls"] = ObjectDecoder
+    kw["object_hook"] = hook
+    return json.loads(string, *args, **kw)
+
+
+class ObjectEncoder(json.JSONEncoder):
+
+    def __init__(self, *args, **kwargs):
+        json.JSONEncoder.__init__(self, *args, **kwargs)
+
+    def default(self, o):
+        if isinstance(o, dict):
+            return o.items()
+        if isinstance(o, Object):
+            return vars(o)
+        if isinstance(o, list):
+            return iter(o)
+        if isinstance(o, (type(str), type(True), type(False), type(int), type(float))):
+            return o
+        try:
+            return json.JSONEncoder.default(self, o)
+        except TypeError:
+            try:
+                return o.__dict__
+            except AttributeError:
+                return repr(o)
+
+    def encode(self, o) -> str:
+        return json.JSONEncoder.encode(self, o)
+
+    def iterencode(self, o, _one_shot=False):
+        return json.JSONEncoder.iterencode(self, o, _one_shot)
+
+
+def dump(*args, **kw):
+    kw["cls"] = ObjectEncoder
+    return json.dump(*args, **kw)
+
+
+def dumps(*args, **kw):
+    kw["cls"] = ObjectEncoder
+    return json.dumps(*args, **kw)
 
 
 def __dir__():
@@ -266,10 +217,8 @@ def __dir__():
         'Object',
         'Obj',
         'construct',
-        'edit',
-        'format',
-        'fqn',
         'dumps',
+        'edit',
         'keys',
         'loads',
         'items',

@@ -1,15 +1,17 @@
 # This file is placed in the Public Domain.
+# pylint: disable=C,W0105
 
 
 "show errors"
 
 
-from ..command  import Commands
 from ..runtime import Errors
 
 
+"commands"
+
+
 def err(event):
-    "show errors."
     nmr = 0
     for exc in Errors.errors:
         for line in exc:
@@ -19,6 +21,3 @@ def err(event):
         event.reply("no errors")
         return
     event.reply(f"found {nmr} errors.")
-
-
-Commands.add(err)
