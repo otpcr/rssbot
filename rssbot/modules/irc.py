@@ -52,7 +52,7 @@ def init():
 class Config(Object):
 
     channel = f'#{NAME}'
-    commands = True
+    commands = False
     control = '!'
     edited = time.time()
     nick = NAME
@@ -194,7 +194,6 @@ class IRC(Reactor, Output):
         self.register('ERROR', cb_error)
         self.register('LOG', cb_log)
         self.register('NOTICE', cb_notice)
-        self.register('PRIVMSG', cb_privmsg)
         self.register('QUIT', cb_quit)
         self.register("366", cb_ready)
         self.ident = ident(self)
@@ -561,22 +560,6 @@ def cb_notice(bot, evt):
     if evt.txt.startswith('VERSION'):
         txt = f'\001VERSION {NAME.upper()} 140 - {bot.cfg.username}\001'
         bot.docommand('NOTICE', evt.channel, txt)
-
-
-def cb_privmsg(bot, evt):
-    if not bot.cfg.commands:
-        return
-    if evt.txt:
-        if evt.txt[0] in ['!',]:
-            evt.txt = evt.txt[1:]
-        elif evt.txt.startswith(f'{bot.cfg.nick}:'):
-            evt.txt = evt.txt[len(bot.cfg.nick)+1:]
-        else:
-            return
-        if evt.txt:
-            evt.txt = evt.txt[0].lower() + evt.txt[1:]
-        if evt.txt:
-            command(bot, evt)
 
 
 def cb_quit(bot, evt):
