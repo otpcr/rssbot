@@ -21,10 +21,10 @@ R S S B O T
 **DESCRIPTION**
 
 
-**RSSBOT** is a python3 bot able to display rss feeds in your channel.
+``rssbot`` is a python3 bot able to display rss feeds in your channel.
 
 
-**RSSBOT** comes with a cli to configure and a daemon to run in the
+``rssbot`` comes with a cli to configure and a daemon to run in the
 background, hooking the daemon in systemd brings a 24/7 available
 rssbot in your channel.
 
