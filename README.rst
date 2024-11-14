@@ -1,12 +1,13 @@
-N I X M
-=======
+R S S B O T
+===========
 
 
 **NAME**
 
 
-``rssbot`` - 24/7 Feed Fetcher
-
+|
+|``rssbot`` - 24/7 Feed Fetcher
+|
 
 **SYNOPSIS**
 
@@ -20,10 +21,10 @@ N I X M
 **DESCRIPTION**
 
 
-RSSBOT is a python3 bot able to display rss feeds in your channel.
+**RSSBOT** is a python3 bot able to display rss feeds in your channel.
 
 
-RSSBOT comes with a cli to configure and a daemon to run in the
+**RSSBOT** comes with a cli to configure and a daemon to run in the
 background, hooking the daemon in systemd brings a 24/7 available
 rssbot in your channel.
 
@@ -82,8 +83,6 @@ start service
 
 
 **COMMANDS**
-
-here is a list of available commands
 
 |
 | ``cfg`` - irc configuration
