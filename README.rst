@@ -78,25 +78,6 @@ start service
 | ``<runs until ctrl-c>``
 |
 
-
-**COMMANDS**
-
-| ``cfg`` - irc configuration
-| ``cmd`` - commands
-| ``dpl`` - sets display items
-| ``err`` - show errors
-| ``exp`` - export opml (stdout)
-| ``imp`` - import opml
-| ``mre`` - display cached output
-| ``pwd`` - sasl nickserv name/pass
-| ``rem`` - removes a rss feed
-| ``res`` - restore deleted feeds
-| ``rss`` - add a feed
-| ``syn`` - sync rss feeds
-| ``thr`` - show running threads
-| ``upt`` - show uptime
-|
-
 **CONFIGURATION**
 
 irc
@@ -132,6 +113,24 @@ opml
 | ``~/.rssbot``
 | ``~/.local/bin/rssbot``
 | ``~/.local/pipx/venvs/rssbot/*``
+|
+
+**COMMANDS**
+
+| ``cfg`` - irc configuration
+| ``cmd`` - commands
+| ``dpl`` - sets display items
+| ``err`` - show errors
+| ``exp`` - export opml (stdout)
+| ``imp`` - import opml
+| ``mre`` - display cached output
+| ``pwd`` - sasl nickserv name/pass
+| ``rem`` - removes a rss feed
+| ``res`` - restore deleted feeds
+| ``rss`` - add a feed
+| ``syn`` - sync rss feeds
+| ``thr`` - show running threads
+| ``upt`` - show uptime
 |
 
 **AUTHOR**
