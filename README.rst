@@ -28,9 +28,9 @@ rssbot in your channel.
 
 *notes*
 
- 1) if reinstall fails, try pip uninstall to start pristine.
- 2) if that fails, install a fresh ``rssbot srv`` and reinstall.
- 3) rssbots has been replaced with rssbot -s 
+1) if reinstall fails, try pip uninstall to start pristine.
+2) if that fails, install a fresh ``rssbot srv`` and reinstall.
+3) rssbots has been replaced with rssbot -s 
 
 
 **INSTALL**
