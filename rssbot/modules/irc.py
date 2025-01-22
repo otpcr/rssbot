@@ -608,7 +608,7 @@ def cfg(event):
     else:
         edit(config, event.sets)
         write(config, fnm)
-        event.ok()
+        event.done()
 
 
 def mre(event):
