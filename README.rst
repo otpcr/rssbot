@@ -48,7 +48,7 @@ installation is done with pipx
 |
 | ``$ rssbot srv > rssbot.service``
 | ``$ sudo mv rssbot.service /etc/systemd/system/``
-| ``$ sudo systemctl daemon-reload
+| ``$ sudo systemctl daemon-reload``
 | ``$ sudo systemctl enable rssbot --now``
 |
 | joins ``#rssbot`` on localhost
@@ -74,14 +74,14 @@ see list of commands
 start daemon
 
 |
-| ``$ rssbotd``
+| ``$ rssbot -d``
 | ``$``
 |
 
 start service
 
 |
-| ``$ rssbots``
+| ``$ rssbot -s``
 | ``<runs until ctrl-c>``
 |
 
