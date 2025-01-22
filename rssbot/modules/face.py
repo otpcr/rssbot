@@ -5,7 +5,7 @@
 "interface"
 
 
-from rssbot.modules import cmd, err, flt, irc, mod, rss, thr, upt
+from rssbot.modules import cmd, err, flt, irc, mod, opm, rss, thr, upt
 
 
 def __dir__():
@@ -15,6 +15,7 @@ def __dir__():
         'flt',
         'irc',
         'mod',
+        'opm',
         'rss',
         'thr',
         'upt'
