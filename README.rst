@@ -6,14 +6,14 @@ R S S B O T
 
 
 |
-|``rssbot`` - 24/7 Feed Fetcher
+| ``rssbot`` - 24/7 Feed Fetcher.
 |
 
 **SYNOPSIS**
 
 |
 | ``rssbot <cmd> [key=val] [key==val]``
-| ``rssbot -[cdvisw]
+| ``rssbot -[cdvisw]``
 |
 
 
@@ -32,6 +32,7 @@ rssbot in your channel.
 
  1) if reinstall fails, try pip uninstall to start pristine.
  2) if that fails, install a fresh ``rssbot srv`` and reinstall.
+ 3) rssbots has been replaced with rssbot -s 
 
 
 **INSTALL**
