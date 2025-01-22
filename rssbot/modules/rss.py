@@ -292,7 +292,7 @@ def dpl(event):
         if feed:
             update(feed, setter)
             write(feed, fnm)
-    event.ok()
+    event.done()
 
 
 def nme(event):
@@ -304,7 +304,7 @@ def nme(event):
         if feed:
             feed.name = event.args[1]
             write(feed, fnm)
-    event.ok()
+    event.done()
 
 
 def rem(event):
@@ -317,7 +317,7 @@ def rem(event):
         if feed:
             feed.__deleted__ = True
             write(feed, fnm)
-    event.ok()
+    event.done()
 
 
 def res(event):
@@ -330,7 +330,7 @@ def res(event):
         if feed:
             feed.__deleted__ = False
             write(feed, fnm)
-    event.ok()
+    event.done()
 
 
 def rss(event):
@@ -354,7 +354,7 @@ def rss(event):
     feed = Rss()
     feed.rss = event.args[0]
     write(feed)
-    event.ok()
+    event.done()
 
 
 def syn(event):

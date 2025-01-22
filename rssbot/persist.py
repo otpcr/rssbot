@@ -11,10 +11,10 @@ import json
 import pathlib
 import time
 import threading
-import _thread
 
 
-from rssbot.objects import Object, dumps, fqn, items, keys, loads, update
+
+from rssbot.objects import Object, dumps, fqn, items, loads, update
 
 
 "defines"
@@ -23,6 +23,14 @@ from rssbot.objects import Object, dumps, fqn, items, keys, loads, update
 p      = os.path.join
 rwlock = threading.RLock()
 lock   = threading.RLock()
+
+
+"exceptions"
+
+
+class DecodeError(Exception):
+
+    pass
 
 
 "cache"

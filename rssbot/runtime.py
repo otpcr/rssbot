@@ -1,5 +1,5 @@
 # This file is placed in the Public Domain.
-# pylint: disable=C0115,C0116,R0903
+# pylint: disable=C0115,C0116,R0903,W0105,W0212,W0718
 
 
 "threading"
@@ -195,7 +195,7 @@ class Event(Default):
         self.type   = "event"
         self.txt    = ""
 
-    def ok(self):
+    def done(self):
         self.reply("ok")
 
     def ready(self):

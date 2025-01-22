@@ -19,7 +19,7 @@ import _thread
 from rssbot.clients import Fleet
 from rssbot.command import command
 from rssbot.objects import Default, Object, edit, fmt, keys
-from rssbot.persist import ident, last, store, write
+from rssbot.persist import ident, last, write
 from rssbot.runtime import Event, Reactor, later, launch
 
 
