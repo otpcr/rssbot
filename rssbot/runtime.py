@@ -33,8 +33,7 @@ class Errors:
 
 def errors():
     for err in Errors.errors:
-        for line in err:
-            yield line
+        yield from err
 
 
 def later(exc):
