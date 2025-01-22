@@ -13,8 +13,7 @@ R S S B O T
 
 |
 | ``rssbot <cmd> [key=val] [key==val]``
-| ``rssbotd`` 
-| ``rssbots``
+| ``rssbot -[cdvisw]
 |
 
 
@@ -29,7 +28,10 @@ background, hooking the daemon in systemd brings a 24/7 available
 rssbot in your channel.
 
 
-*note* if reinstall fails, try pip uninstall to start pristine.
+*notes*
+
+ 1) if reinstall fails, try pip uninstall to start pristine.
+ 2) if that fails, install a fresh ``rssbot srv`` and reinstall
 
 
 **INSTALL**
@@ -45,6 +47,7 @@ installation is done with pipx
 |
 | ``$ rssbot srv > rssbot.service``
 | ``$ sudo mv rssbot.service /etc/systemd/system/``
+| ``$ sudo systemctl daemon-reload
 | ``$ sudo systemctl enable rssbot --now``
 |
 | joins ``#rssbot`` on localhost
@@ -134,19 +137,12 @@ opml
 | ``$ rssbot imp <filename>``
 |
 
-**SOURCE**
-
-
-source is at `https://github.com/otpcr/rssbot <https://github.com/otpcr/rssbot>`_
-
 
 **FILES**
 
 |
 | ``~/.rssbot``
 | ``~/.local/bin/rssbot``
-| ``~/.local/bin/rssbotd``
-| ``~/.local/bin/rssbots``
 | ``~/.local/pipx/venvs/rssbot/*``
 |
 
@@ -159,5 +155,5 @@ source is at `https://github.com/otpcr/rssbot <https://github.com/otpcr/rssbot>`
 **COPYRIGHT**
 
 |
-| ``RSSBOT`` is Public Domain.
+| ``rssbot`` is Public Domain.
 |
