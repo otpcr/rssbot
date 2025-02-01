@@ -61,7 +61,7 @@ def handle_exception(exc):
 
 def later(exc) -> None:
     excp = exc.with_traceback(exc.__traceback__)
-    handle_exception(exc)
-    fmt = Errors.format(exc)
+    handle_exception(excp)
+    fmt = Errors.format(excp)
     if fmt not in Errors.errors:
         Errors.errors.append(fmt)

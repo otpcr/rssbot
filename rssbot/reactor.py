@@ -7,7 +7,7 @@
 import queue
 import threading
 import time
-import typing
+import _thread
 
 
 from .default import Default

@@ -8,7 +8,6 @@ import queue
 import threading
 import time
 import typing
-import traceback
 
 
 lock = threading.RLock()

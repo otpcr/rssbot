@@ -5,12 +5,6 @@
 "a clean namespace"
 
 
-import json
-
-
-"object"
-
-
 class Object:
 
 
@@ -107,9 +101,6 @@ def update(obj, data):
 
 def values(obj):
     return obj.__dict__.values()
-
-
-"interface"
 
 
 def __dir__():

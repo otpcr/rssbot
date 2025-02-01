@@ -6,15 +6,15 @@
 
 import datetime
 import os
+import json
 import pathlib
 import threading
 
 
-from .caching import Cache
 from .decoder import loads
 from .encoder import dumps
-from .objects import Object, fqn, items, update
-from .workdir import Workdir, store
+from .objects import fqn, update
+from .workdir import store
 
 
 p    = os.path.join
