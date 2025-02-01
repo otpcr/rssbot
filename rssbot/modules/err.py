@@ -1,18 +1,17 @@
 # This file is placed in the Public Domain.
-# pylint: disable=C0116
+# pylint: disable=C0116,E0402
 
 
 "errors"
 
 
-from rssbot.runtime import Errors
+from ..excepts import Errors
 
 
 def err(event):
     nmr = 0
-    for exc in Errors.errors:
-        for line in exc:
-            event.reply(line.strip())
+    for line in Errors.errors:
+        event.reply(line.strip())
         nmr += 1
     if not nmr:
         event.reply("no errors")

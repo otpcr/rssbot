@@ -1,28 +1,41 @@
 # This file is placed in the Public Domain.
-# pylint: disable=C0115,C0116,R0912,W0105
+# pylint: disable=C0115,C0116,C0415,R0903,R0912,W0105,W0612,W0613,W0718,E0402
 
 
-"user commands"
+"command"
 
 
 import inspect
-import types
+import threading
 
 
-from rssbot.objects import Default
-from rssbot.runtime import launch
+from .default import Default
+from .tabling import Table, gettable, spl
 
 
-"commands"
+initlock = threading.RLock()
+loadlock = threading.RLock()
+lock     = threading.RLock()
 
 
 class Commands:
 
     cmds = {}
+    names = gettable()
 
     @staticmethod
-    def add(func):
+    def add(func, mod=None):
         Commands.cmds[func.__name__] = func
+        if mod:
+            Commands.names[func.__name__] = mod.__name__
+
+    @staticmethod
+    def get(cmd):
+        return Commands.cmds.get(cmd, None)
+
+    @staticmethod
+    def getname(cmd):
+        return Commands.names.get(cmd)
 
     @staticmethod
     def scan(mod):
@@ -30,29 +43,23 @@ class Commands:
             if key.startswith("cb"):
                 continue
             if 'event' in cmdz.__code__.co_varnames:
-                Commands.add(cmdz)
+                Commands.add(cmdz, mod)
 
 
-def command(bot, evt):
+def command(evt):
     parse(evt)
-    func = Commands.cmds.get(evt.cmd, None)
-    if func:
-        func(evt)
-    bot.display(evt)
-    evt.ready()
-
-
-"utilities"
-
-
-def modloop(*pkgs, disable=""):
-    for pkg in pkgs:
-        for modname in dir(pkg):
-            if modname in spl(disable):
-                continue
-            if modname.startswith("__"):
-                continue
-            yield getattr(pkg, modname)
+    func = Commands.get(evt.cmd)
+    if not func:
+        mname = Commands.names.get(evt.cmd)
+        if mname:
+            mod = Table.load(mname)
+            Commands.scan(mod)
+            func = Commands.get(evt.cmd)
+    if not func:
+        evt.ready()
+        return
+    func(evt)
+    evt.display()
 
 
 def parse(obj, txt=None):
@@ -68,7 +75,7 @@ def parse(obj, txt=None):
     obj.index   = None
     obj.mod     = ""
     obj.opts    = ""
-    obj.result  = []
+    obj.result  = {}
     obj.sets    = Default()
     obj.txt     = txt or ""
     obj.otxt    = obj.txt
@@ -109,34 +116,10 @@ def parse(obj, txt=None):
     return obj
 
 
-def scan(*pkgs, init=False, disable=""):
-    result = []
-    for mod in modloop(*pkgs, disable=disable):
-        if not isinstance(mod, types.ModuleType):
-            continue
-        Commands.scan(mod)
-        thr = None
-        if init and "init" in dir(mod):
-            thr = launch(mod.init)
-        result.append((mod, thr))
-    return result
-
-
-def spl(txt):
-    try:
-        result = txt.split(',')
-    except (TypeError, ValueError):
-        result = txt
-    return [x for x in result if x]
-
-
-"interface"
-
-
 def __dir__():
     return (
         'Commands',
         'command',
-        'parse',
-        'scan'
+        'cmd',
+        'parse'
     )

@@ -1,5 +1,5 @@
 # This file is placed in the Public Domain.
-# pylint: disable=C0116
+# pylint: disable=C0116,W0105,E0402
 
 
 "show running threads."
@@ -9,8 +9,8 @@ import threading
 import time
 
 
-from rssbot.objects import Object, update
-from rssbot.persist import elapsed
+from ..objects import Object, update
+from ..utility import elapsed
 
 
 STARTTIME = time.time()

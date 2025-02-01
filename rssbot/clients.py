@@ -1,5 +1,5 @@
 # This file is placed in the Public Domain.
-# pylint: disable=C0115,C0116,R0903,W0105
+# pylint: disable=C0115,C0116,R0903,W0105,W0212,W0613,W0718,E0402
 
 
 "clients"
@@ -9,113 +9,101 @@ import queue
 import threading
 
 
-from rssbot.command import command
-from rssbot.objects import Default
-from rssbot.runtime import Reactor, launch
-
-"config"
+from .default import Default
+from .reactor import Fleet, Reactor
+from .threads import launch
 
 
 class Config(Default):
 
-    name = Default.__module__.rsplit(".", maxsplit=2)[-2]
-
-
-"client"
+    init = ""
+    name = "rssbot"
+    opts = Default()
 
 
 class Client(Reactor):
 
     def __init__(self):
         Reactor.__init__(self)
-        self.register("command", command)
         Fleet.add(self)
 
-    def display(self, evt):
-        for txt in evt.result:
-            self.raw(txt)
-
-    def raw(self, txt):
+    def raw(self, txt) -> None:
         raise NotImplementedError("raw")
 
-
-"fleet"
-
-
-class Fleet:
-
-    bots = {}
-
-    @staticmethod
-    def add(bot):
-        Fleet.bots[repr(bot)] = bot
-
-    @staticmethod
-    def announce(txt):
-        for bot in Fleet.bots:
-            bot.announce(txt)
-
-    @staticmethod
-    def first():
-        bots =  list(Fleet.bots.values())
-        if not bots:
-            bots.append(Client())
-        return bots[0]
-
-    @staticmethod
-    def get(name):
-        return Fleet.bots.get(name, None)
-
-
-"output"
+    def say(self, channel, txt) -> None:
+        self.raw(txt)
 
 
 class Output:
-
-    cache = {}
-
     def __init__(self):
-        self.oqueue = queue.Queue()
-        self.dostop = threading.Event()
+        self.oqueue   = queue.Queue()
+        self.running = threading.Event()
 
-    def display(self, evt):
-        for txt in evt.result:
-            self.oput(evt.channel, txt)
-
-    def dosay(self, channel, txt):
-        raise NotImplementedError("dosay")
-
-    def oput(self, channel, txt):
-        self.oqueue.put((channel, txt))
-
-    def output(self):
-        while not self.dostop.is_set():
-            (channel, txt) = self.oqueue.get()
-            if channel is None and txt is None:
+    def loop(self) -> None:
+        self.running.set()
+        while self.running.is_set():
+            evt = self.oqueue.get()
+            if evt is None:
                 self.oqueue.task_done()
                 break
-            self.dosay(channel, txt)
+            Fleet.display(evt)
             self.oqueue.task_done()
 
-    def start(self):
-        launch(self.output)
+    def oput(self,evt) -> None:
+        if not self.running.is_set():
+            Fleet.display(evt)
+        self.oqueue.put(evt)
 
-    def stop(self):
+    def start(self) -> None:
+        if not self.running.is_set():
+            self.running.set()
+            launch(self.loop)
+
+    def stop(self) -> None:
+        self.running.clear()
+        self.oqueue.put(None)
+
+    def wait(self) -> None:
         self.oqueue.join()
-        self.dostop.set()
-        self.oqueue.put((None, None))
-
-    def wait(self):
-        self.dostop.wait()
+        self.running.wait()
 
 
+class Buffered(Client, Output):
 
-"interface"
+    def __init__(self):
+        Client.__init__(self)
+        Output.__init__(self)
+
+    def raw(self, txt) -> None:
+        raise NotImplementedError("raw")
+
+    def start(self) -> None:
+        Output.start(self)
+        Client.start(self)
+
+    def stop(self) -> None:
+        Output.stop(self)
+        Client.stop(self)
+
+    def wait(self) -> None:
+        Output.wait(self)
+        Client.wait(self)
+
+
+def debug(txt) -> None:
+    if "v" in Config.opts:
+        output(txt)
+
+
+def output(txt) -> None:
+    # output here
+    print(txt)
+
 
 def __dir__():
     return (
+        'Default',
         'Client',
-        'Config',
         'Fleet',
-        'Output'
+        'debug'
     )
